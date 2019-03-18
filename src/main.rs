@@ -24,6 +24,7 @@ use sphere::Sphere;
 use std::f64;
 mod light;
 use light::{lighting, PointLight};
+mod camera;
 mod material;
 
 fn canon() {
@@ -64,7 +65,7 @@ fn sphere_projection() {
     let pixel_size = wall_size / width as f64;
     let half = wall_size / 2.0;
     let wall_z = 10.0 as f64;
-    let ray_origin = point(0., 0., -5.);
+    let ray_origin = point(0., 0., -10.5);
 
     let mut shape = Sphere::new(point(0., 0., 0.), 1.);
     shape.material.color = Color::new(0.6, 0.9, 1.);

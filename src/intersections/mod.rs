@@ -1,6 +1,6 @@
 use crate::ray::Ray;
 use crate::sphere::Sphere;
-use crate::vectors::{point, vector};
+use crate::vectors::{dot, point, vector, Tuple};
 
 #[derive(Clone)]
 pub struct Intersection {
@@ -22,6 +22,37 @@ pub struct Intersections {
   pub intersections: Vec<Intersection>,
 }
 
+pub struct Computations {
+  pub t: f64,
+  pub object: Sphere,
+  pub point: Tuple,
+  pub eyev: Tuple,
+  pub normalv: Tuple,
+  pub inside: bool,
+}
+
+pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
+  let t = i.t;
+  let point = r.position(t);
+  let mut normalv = i.object.normal_at(point);
+  let eyev = r.direction.negate();
+  let mut inside = dot(normalv, eyev) < 0.;
+  if inside {
+    normalv = normalv.negate();
+  } else {
+    inside = false;
+  }
+
+  return Computations {
+    t: i.t,
+    object: i.object,
+    point: point,
+    eyev: eyev,
+    normalv: normalv,
+    inside: inside,
+  };
+}
+
 impl Intersections {
   pub fn new(intersections: Vec<Intersection>) -> Intersections {
     Intersections {
@@ -30,7 +61,9 @@ impl Intersections {
   }
 
   pub fn hit(&self) -> Intersections {
-    if self.intersections.len() == 0 {
+    let len = self.intersections.len();
+
+    if len == 0 {
       return Intersections::new(vec![]);
     }
     let mut hit = Intersection::new(
@@ -39,7 +72,7 @@ impl Intersections {
     );
 
     for intersect in &self.intersections {
-      if intersect.t < hit.t && intersect.t >= 0. {
+      if hit.t < 0. || intersect.t < hit.t && intersect.t >= 0. {
         hit = Intersection::new(intersect.t, intersect.object.clone());
       }
     }
@@ -158,4 +191,45 @@ fn intersections_hit_is_lowest_non_negative() {
   assert_eq!(hit.intersections.len(), 1);
   assert_eq!(hit.intersections[0].t, 2.);
   assert_eq!(hit.intersections[0].object.handle, handle);
+}
+
+#[test]
+
+fn precompute_the_state_of_an_intersection() {
+  let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
+  let s = Sphere::new(point(0., 0., 0.), 1.);
+  let i = Intersection::new(4., s);
+  let t = i.t;
+
+  let comps = prepare_computations(i, r);
+
+  assert_eq!(comps.t, t);
+  assert_eq!(comps.point.equals(point(0., 0., -1.)), true);
+  assert_eq!(comps.eyev.equals(vector(0., 0., -1.)), true);
+  assert_eq!(comps.normalv.equals(vector(0., 0., -1.)), true);
+}
+
+#[test]
+fn the_hit_when_an_intersection_occurs_on_outside() {
+  let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
+  let s = Sphere::new(point(0., 0., 0.), 1.);
+  let i = Intersection::new(4., s);
+
+  let comps = prepare_computations(i, r);
+
+  assert_eq!(comps.inside, false);
+}
+
+#[test]
+fn the_hit_when_an_intersection_occurs_on_inside() {
+  let r = Ray::new(point(0., 0., 0.), vector(0., 0., 1.));
+  let s = Sphere::new(point(0., 0., 0.), 1.);
+  let i = Intersection::new(1., s);
+
+  let comps = prepare_computations(i, r);
+
+  assert_eq!(comps.inside, true);
+  assert_eq!(comps.point.equals(point(0., 0., 1.)), true);
+  assert_eq!(comps.eyev.equals(vector(0., 0., -1.)), true);
+  assert_eq!(comps.normalv.equals(vector(0., 0., -1.)), true);
 }

@@ -1,6 +1,6 @@
 use crate::matrix::Matrix;
 use crate::vectors::Tuple;
-use crate::vectors::{point, vector};
+use crate::vectors::{cross, point, vector};
 use std::f64;
 
 pub struct Transform {
@@ -113,6 +113,23 @@ impl Transform {
     return Transform {
       transform: Matrix::mult(&self.transform, &rotate_z),
     };
+  }
+
+  pub fn view_transform(from: Tuple, to: Tuple, up: Tuple) -> Matrix {
+    let forward = to.sub(from).norm();
+    let left = cross(forward, up.norm());
+    let true_up = cross(left, forward);
+    let orientation_vec = vec![
+      left.x, left.y, left.z, 0., true_up.x, true_up.y, true_up.z, 0., -forward.x, -forward.y,
+      -forward.z, 0., 0., 0., 0., 1.,
+    ];
+    let orientation = Matrix::new(4, 4, orientation_vec);
+    return Matrix::mult(
+      &orientation,
+      &Transform::new()
+        .translate(-from.x, -from.y, -from.z)
+        .transform,
+    );
   }
 }
 
@@ -322,4 +339,49 @@ fn it_chains_transformations_in_reverse_order() {
   let pt = Matrix::mult_4x4_by_1d(&transforms, &p);
   let ex = point(15., 0., 7.);
   assert_eq!(pt.equals(ex), true);
+}
+
+#[test]
+fn the_transformation_matrix_for_the_default_orientation() {
+  let from = point(0., 0., 0.);
+  let to = point(0., 0., -1.);
+  let up = vector(0., 1., 0.);
+  let t = Transform::view_transform(from, to, up);
+  let i = Matrix::identity(4);
+  assert_eq!(Matrix::equals(&t, &i), true);
+}
+
+#[test]
+fn a_view_transformation_matrix_looking_in_positive_z_direction() {
+  let from = point(0., 0., 0.);
+  let to = point(0., 0., 1.);
+  let up = vector(0., 1., 0.);
+  let t = Transform::view_transform(from, to, up);
+  let expected = Transform::new().scale(-1., 1., -1.).transform;
+  assert_eq!(Matrix::equals(&t, &expected), true);
+}
+
+#[test]
+fn the_view_transformation_matrix_moves_the_world() {
+  let from = point(0., 0., 8.);
+  let to = point(0., 0., 0.);
+  let up = vector(0., 1., 0.);
+  let t = Transform::view_transform(from, to, up);
+
+  let expected = Transform::new().translate(0., 0., -8.).transform;
+  assert_eq!(Matrix::approx_equals(&t, &expected), true);
+}
+
+#[test]
+fn an_arbitrary_view_transformation() {
+  let from = point(1., 3., 2.);
+  let to = point(4., -2., 8.);
+  let up = vector(1., 1., 0.);
+  let t = Transform::view_transform(from, to, up);
+  let expected_data = vec![
+    -0.50709, 0.50709, 0.67612, -2.36643, 0.76772, 0.60609, 0.12122, -2.82843, -0.35857, 0.59761,
+    -0.71714, 0.00000, 0.00000, 0.00000, 0.00000, 1.00000,
+  ];
+  let expected = Matrix::new(4, 4, expected_data);
+  assert_eq!(Matrix::approx_equals(&t, &expected), true);
 }
