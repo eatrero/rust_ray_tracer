@@ -2,7 +2,7 @@ mod vectors;
 use vectors::{point, vector};
 
 mod world;
-use world::{tick, Env, Proj};
+use world::{tick, Env, Proj, World};
 
 mod colors;
 use colors::Color;
@@ -25,36 +25,9 @@ use std::f64;
 mod light;
 use light::{lighting, PointLight};
 mod camera;
+use camera::Camera;
 mod material;
-
-fn canon() {
-    let width = 600;
-    let height = 550;
-    let mut c = Canvas::new(width, height);
-    let red = Color::new(1., 0., 0.);
-
-    let mut p = Proj::new(point(0., 1., 0.), vector(0.5, 1.8, 0.).norm().mult(9.25));
-    let e = Env::new(vector(0., -0.1, 0.), vector(0.01, 0., 0.));
-    let mut index = 0;
-
-    fn clamp(a: usize, max: usize) -> usize {
-        let mut out = if a >= max { max } else { a };
-        out = if out <= 0 { 0 } else { out };
-        return out;
-    }
-
-    while p.pos.y > 0.0 {
-        let mut x = clamp(p.pos.x as usize, width - 1);
-        let mut y = height - 1 - clamp(p.pos.y as usize, height - 1);
-
-        println!("position: {} {}", x, y);
-        c.set(x, y, red);
-        p = tick(e, p);
-        index = index + 1;
-    }
-    println!("position: {} {}, steps: {}", p.pos.x, p.pos.y, index);
-    c.write();
-}
+use material::Material;
 
 fn sphere_projection() {
     let width = 100;
@@ -107,38 +80,94 @@ fn sphere_projection() {
     c.write();
 }
 
-fn clock() {
-    let width = 100;
-    let height = 100;
-    let mut c = Canvas::new(width, height);
-    let white = Color::new(1., 1., 1.);
+fn world() {
+    let width = 500;
+    let height = 250;
+    let fov = f64::consts::PI / 3.0;
+    let mut camera = Camera::new(width, height, fov);
+    let mut world = World::new();
 
-    fn clamp(a: usize, max: usize) -> usize {
-        let mut out = if a >= max { max } else { a };
-        out = if out <= 0 { 0 } else { out };
-        return out;
-    }
+    // setup light
+    world.set_light(PointLight::new(
+        point(-10., 10., -10.),
+        Color::new(1., 1., 1.),
+    ));
 
-    for i in 0..12 {
-        let mut p = point(0., 0., 1.);
-        let transform = Transform::new()
-            .translate(50., 0., 50.)
-            .scale(40., 0., 40.)
-            .rotate_y((i as f64) * f64::consts::PI / 6.)
-            .transform;
-        p = Matrix::mult_4x4_by_1d(&transform, &p);
-        let x = clamp(p.x as usize, width - 1);
-        let y = clamp(p.z as usize, height - 1);
-        println!("{} {} {} {} {} {}", p.x, p.y, p.z, p.w, x, y);
-        c.set(x, y, white);
-    }
+    // setup floor
+    let mut floor = Sphere::new(point(0., 0., 0.), 1.0);
+    floor.transform = Transform::new().scale(10., 0.01, 10.0).transform;
+    floor.material = Material::new();
+    floor.material.color = Color::new(1.0, 0.9, 0.9);
+    floor.material.specular = 0.0;
+    world.add_object(floor);
 
-    c.write();
+    // setup left wall
+    let mut left_wall = Sphere::new(point(0., 0., 0.), 1.0);
+    left_wall.transform = Transform::new()
+        .translate(0., 0., 5.)
+        .rotate_y(-f64::consts::PI / 4.0)
+        .rotate_x(f64::consts::PI / 2.0)
+        .scale(10., 0.01, 10.)
+        .transform;
+    left_wall.material = Material::new();
+    left_wall.material.color = Color::new(1.0, 0.9, 0.9);
+    left_wall.material.specular = 0.;
+    world.add_object(left_wall);
+
+    // setup right wall
+    let mut right_wall = Sphere::new(point(0., 0., 0.), 1.0);
+    right_wall.transform = Transform::new()
+        .translate(0., 0., 5.)
+        .rotate_y(f64::consts::PI / 4.0)
+        .rotate_x(f64::consts::PI / 2.0)
+        .scale(10., 0.01, 10.)
+        .transform;
+    right_wall.material = Material::new();
+    right_wall.material.color = Color::new(1.0, 0.9, 0.9);
+    right_wall.material.specular = 0.;
+    world.add_object(right_wall);
+
+    // setup middle sphere
+    let mut middle = Sphere::new(point(0., 0., 0.), 1.0);
+    middle.transform = Transform::new().translate(-0.5, 1., 0.5).transform;
+    middle.material = Material::new();
+    middle.material.color = Color::new(0.1, 1.0, 0.5);
+    middle.material.diffuse = 0.7;
+    middle.material.specular = 0.3;
+    world.add_object(middle);
+
+    // setup right sphere
+    let mut right = Sphere::new(point(0., 0., 0.), 1.0);
+    right.transform = Transform::new()
+        .translate(1.5, 0.5, -0.5)
+        .scale(0.5, 0.5, 0.5)
+        .transform;
+    right.material = Material::new();
+    right.material.color = Color::new(0.5, 1.0, 0.1);
+    right.material.diffuse = 0.7;
+    right.material.specular = 0.3;
+    world.add_object(right);
+    camera.transform =
+        Transform::view_transform(point(0., 1.5, -5.), point(0., 1., 0.), vector(0., 1., 0.));
+
+    // setup left sphere
+    let mut left = Sphere::new(point(0., 0., 0.), 1.0);
+    left.transform = Transform::new()
+        .translate(-1.5, 0.33, -0.75)
+        .scale(0.33, 0.33, 0.33)
+        .transform;
+    left.material = Material::new();
+    left.material.color = Color::new(1., 0.8, -0.75);
+    left.material.diffuse = 0.7;
+    left.material.specular = 0.3;
+    world.add_object(left);
+    camera.transform =
+        Transform::view_transform(point(0., 1.5, -5.), point(0., 1., 0.), vector(0., 1., 0.));
+
+    let image = camera.render(world);
+    image.write();
 }
 
 fn main() {
-    //canon();
-    //clock();
-
-    sphere_projection();
+    world();
 }

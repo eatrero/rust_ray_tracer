@@ -13,7 +13,7 @@ pub struct Camera {
   half_width: f64,
   half_height: f64,
   fov: f64,
-  transform: Matrix,
+  pub transform: Matrix,
   pixel_size: f64,
 }
 

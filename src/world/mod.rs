@@ -39,15 +39,23 @@ pub fn tick(env: Env, proj: Proj) -> Proj {
 
 pub struct World {
   light: Option<PointLight>,
-  objects: Option<Vec<Sphere>>,
+  objects: Vec<Sphere>,
 }
 
 impl World {
   pub fn new() -> World {
     World {
       light: None,
-      objects: None,
+      objects: vec![],
     }
+  }
+
+  pub fn set_light(&mut self, point_light: PointLight) {
+    self.light = Some(point_light);
+  }
+
+  pub fn add_object(&mut self, object: Sphere) {
+    self.objects.push(object);
   }
 
   pub fn default_world() -> World {
@@ -65,7 +73,7 @@ impl World {
         point(-10., 10., -10.),
         Color::new(1., 1., 1.),
       )),
-      objects: Some(vec![s1, s2]),
+      objects: vec![s1, s2],
     };
   }
 
@@ -86,12 +94,12 @@ impl World {
         point(-10., 10., -10.),
         Color::new(1., 1., 1.),
       )),
-      objects: Some(vec![s1, s2]),
+      objects: vec![s1, s2],
     };
   }
 
   pub fn intersect_world(&self, r: Ray) -> Intersections {
-    let objects = self.objects.clone().unwrap_or(vec![]);
+    let objects = self.objects.clone();
 
     let mut _intersections: Vec<Intersection> = objects
       .clone()
@@ -139,7 +147,7 @@ fn new_world_contains_no_light_or_objects() {
   let world = World::new();
 
   assert_eq!(world.light.is_none(), true);
-  assert_eq!(world.objects.is_none(), true);
+  assert_eq!(world.objects.len(), 0);
 }
 
 #[test]
@@ -147,7 +155,7 @@ fn default_world_contains_some_light_or_objects() {
   let world = World::default_world();
 
   assert_eq!(world.light.is_some(), true);
-  assert_eq!(world.objects.is_some(), true);
+  assert_eq!(world.objects.len() > 0, true);
 
   assert_eq!(
     world.light.unwrap().position.equals(point(-10., 10., -10.)),
@@ -190,7 +198,7 @@ fn shading_an_intersection_from_inside() {
   let mut world = World::default_world();
   world.light = Some(PointLight::new(point(0., 0.25, 0.), Color::new(1., 1., 1.)));
   let r = Ray::new(point(0., 0., 0.), vector(0., 0., 1.));
-  let shape = world.objects.clone().unwrap().clone()[1].clone();
+  let shape = world.objects.clone()[1].clone();
   let i = Intersection::new(0.5, shape);
   let comps = prepare_computations(i, r);
   let c = world.shade_hit(comps);
