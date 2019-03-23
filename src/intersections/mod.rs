@@ -1,5 +1,6 @@
 use crate::ray::Ray;
 use crate::sphere::Sphere;
+use crate::transform::Transform;
 use crate::vectors::{dot, point, vector, Tuple};
 
 #[derive(Clone)]
@@ -29,6 +30,7 @@ pub struct Computations {
   pub eyev: Tuple,
   pub normalv: Tuple,
   pub inside: bool,
+  pub over_point: Tuple,
 }
 
 pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
@@ -42,6 +44,7 @@ pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
   } else {
     inside = false;
   }
+  let over_point = point.add(normalv.mult(1.0e-10));
 
   return Computations {
     t: i.t,
@@ -50,6 +53,7 @@ pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
     eyev: eyev,
     normalv: normalv,
     inside: inside,
+    over_point: over_point,
   };
 }
 
@@ -232,4 +236,17 @@ fn the_hit_when_an_intersection_occurs_on_inside() {
   assert_eq!(comps.point.equals(point(0., 0., 1.)), true);
   assert_eq!(comps.eyev.equals(vector(0., 0., -1.)), true);
   assert_eq!(comps.normalv.equals(vector(0., 0., -1.)), true);
+}
+
+#[test]
+fn the_hit_should_offset_the_point() {
+  let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
+  let mut s = Sphere::new(point(0., 0., 0.), 1.);
+  s.transform = Transform::new().translate(0., 0., 1.).transform;
+  let i = Intersection::new(5., s);
+
+  let comps = prepare_computations(i, r);
+
+  assert_eq!(comps.over_point.z < -1.0e-10 / 2.0, true);
+  assert_eq!(comps.point.z > comps.over_point.z, true);
 }

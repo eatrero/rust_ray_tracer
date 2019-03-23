@@ -17,7 +17,14 @@ impl PointLight {
   }
 }
 
-pub fn lighting(m: Material, l: PointLight, position: Tuple, eyev: Tuple, normalv: Tuple) -> Color {
+pub fn lighting(
+  m: Material,
+  l: PointLight,
+  position: Tuple,
+  eyev: Tuple,
+  normalv: Tuple,
+  is_in_shadow: bool,
+) -> Color {
   let mut diffuse;
   let mut specular;
 
@@ -43,11 +50,15 @@ pub fn lighting(m: Material, l: PointLight, position: Tuple, eyev: Tuple, normal
     }
   }
 
+  if (is_in_shadow) {
+    return ambient;
+  }
+
   return Color::add(Color::add(ambient, diffuse), specular);
 }
 
 #[test]
-fn a_PointLight_has_position_and_intensity() {
+fn a_point_light_has_position_and_intensity() {
   let intensity = Color::new(1., 1., 1.);
   let position = point(0., 0., 0.);
 
@@ -65,7 +76,7 @@ fn lighting_with_eye_between_light_and_surface() {
   let eyev = vector(0., 0., -1.);
   let normalv = vector(0., 0., -1.);
 
-  let light = lighting(m, l, position, eyev, normalv);
+  let light = lighting(m, l, position, eyev, normalv, false);
 
   assert_eq!(Color::equals(light, Color::new(1.9, 1.9, 1.9)), true);
 }
@@ -79,7 +90,7 @@ fn lighting_with_eye_between_light_and_surface_eye_at_45() {
   let eyev = vector(0., 2.0f64.sqrt() / 2., -2.0f64.sqrt() / 2.);
   let normalv = vector(0., 0., -1.);
 
-  let light = lighting(m, l, position, eyev, normalv);
+  let light = lighting(m, l, position, eyev, normalv, false);
 
   assert_eq!(Color::equals(light, Color::new(1.0, 1.0, 1.0)), true);
 }
@@ -93,7 +104,7 @@ fn lighting_with_eye_between_light_and_surface_light_at_45() {
   let eyev = vector(0., 0., -1.);
   let normalv = vector(0., 0., -1.);
 
-  let light = lighting(m, l, position, eyev, normalv);
+  let light = lighting(m, l, position, eyev, normalv, false);
 
   assert_eq!(
     Color::approx_equals(light, Color::new(0.7364, 0.7364, 0.7364)),
@@ -110,7 +121,7 @@ fn lighting_with_eye_in_path_of_reflection() {
   let eyev = vector(0., -2.0f64.sqrt() / 2., -2.0f64.sqrt() / 2.);
   let normalv = vector(0., 0., -1.);
 
-  let light = lighting(m, l, position, eyev, normalv);
+  let light = lighting(m, l, position, eyev, normalv, false);
 
   assert_eq!(
     Color::approx_equals(light, Color::new(1.6364, 1.6364, 1.6364)),
@@ -127,7 +138,22 @@ fn lighting_with_light_behind_surface() {
   let eyev = vector(0., 0., -1.);
   let normalv = vector(0., 0., -1.);
 
-  let light = lighting(m, l, position, eyev, normalv);
+  let light = lighting(m, l, position, eyev, normalv, false);
+
+  assert_eq!(Color::equals(light, Color::new(0.1, 0.1, 0.1)), true);
+}
+
+#[test]
+fn lighting_with_with_the_surface_in_shadow() {
+  let m = Material::new();
+  let position = point(0., 0., 0.);
+  let eyev = vector(0., 0., -1.);
+  let normalv = vector(0., 0., -1.);
+  let intensity = Color::new(1., 1., 1.);
+  let l = PointLight::new(point(0., 0., -10.), intensity);
+  let is_in_shadow = true;
+
+  let light = lighting(m, l, position, eyev, normalv, is_in_shadow);
 
   assert_eq!(Color::equals(light, Color::new(0.1, 0.1, 0.1)), true);
 }

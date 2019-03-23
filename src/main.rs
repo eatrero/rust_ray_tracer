@@ -71,7 +71,8 @@ fn sphere_projection() {
                 let p = r.position(first_hit.t);
                 let normv = first_hit.object.normal_at(p);
                 let eye = r.direction.negate();
-                let color = lighting(m, l, p, eye, normv);
+                let is_in_shadow = false;
+                let color = lighting(m, l, p, eye, normv, is_in_shadow);
                 c.set(x, y, color);
             }
         }
@@ -81,8 +82,8 @@ fn sphere_projection() {
 }
 
 fn world() {
-    let width = 500;
-    let height = 250;
+    let width = 2400;
+    let height = 1200;
     let fov = f64::consts::PI / 3.0;
     let mut camera = Camera::new(width, height, fov);
     let mut world = World::new();
@@ -153,7 +154,7 @@ fn world() {
     // setup left sphere
     let mut left = Sphere::new(point(0., 0., 0.), 1.0);
     left.transform = Transform::new()
-        .translate(-1.5, 0.33, -0.75)
+        .translate(-1.8, 1.8, -1.)
         .scale(0.33, 0.33, 0.33)
         .transform;
     left.material = Material::new();
