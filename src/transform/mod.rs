@@ -16,7 +16,7 @@ impl Transform {
 
   pub fn translate(&self, x: f64, y: f64, z: f64) -> Transform {
     let data = vec![1., 0., 0., x, 0., 1., 0., y, 0., 0., 1., z, 0., 0., 0., 1.];
-    let translate = Matrix::new(4, 4, data);
+    let translate = Matrix::new(4, 4, &data);
     return Transform {
       transform: Matrix::mult(&self.transform, &translate),
     };
@@ -24,7 +24,7 @@ impl Transform {
 
   pub fn scale(&self, x: f64, y: f64, z: f64) -> Transform {
     let data = vec![x, 0., 0., 0., 0., y, 0., 0., 0., 0., z, 0., 0., 0., 0., 1.];
-    let scale = Matrix::new(4, 4, data);
+    let scale = Matrix::new(4, 4, &data);
     return Transform {
       transform: Matrix::mult(&self.transform, &scale),
     };
@@ -49,7 +49,7 @@ impl Transform {
       0.,
       1.,
     ];
-    let rotate_x = Matrix::new(4, 4, data);
+    let rotate_x = Matrix::new(4, 4, &data);
     return Transform {
       transform: Matrix::mult(&self.transform, &rotate_x),
     };
@@ -74,7 +74,7 @@ impl Transform {
       0.,
       1.,
     ];
-    let rotate_y = Matrix::new(4, 4, data);
+    let rotate_y = Matrix::new(4, 4, &data);
     return Transform {
       transform: Matrix::mult(&self.transform, &rotate_y),
     };
@@ -99,7 +99,7 @@ impl Transform {
       0.,
       1.,
     ];
-    let rotate_z = Matrix::new(4, 4, data);
+    let rotate_z = Matrix::new(4, 4, &data);
     return Transform {
       transform: Matrix::mult(&self.transform, &rotate_z),
     };
@@ -109,7 +109,7 @@ impl Transform {
     let data = vec![
       1.0, xy, xz, 0., yx, 1., yz, 0., zx, zy, 1., 0., 0., 0., 0., 1.,
     ];
-    let rotate_z = Matrix::new(4, 4, data);
+    let rotate_z = Matrix::new(4, 4, &data);
     return Transform {
       transform: Matrix::mult(&self.transform, &rotate_z),
     };
@@ -123,7 +123,7 @@ impl Transform {
       left.x, left.y, left.z, 0., true_up.x, true_up.y, true_up.z, 0., -forward.x, -forward.y,
       -forward.z, 0., 0., 0., 0., 1.,
     ];
-    let orientation = Matrix::new(4, 4, orientation_vec);
+    let orientation = Matrix::new(4, 4, &orientation_vec);
     return Matrix::mult(
       &orientation,
       &Transform::new()
@@ -382,6 +382,6 @@ fn an_arbitrary_view_transformation() {
     -0.50709, 0.50709, 0.67612, -2.36643, 0.76772, 0.60609, 0.12122, -2.82843, -0.35857, 0.59761,
     -0.71714, 0.00000, 0.00000, 0.00000, 0.00000, 1.00000,
   ];
-  let expected = Matrix::new(4, 4, expected_data);
+  let expected = Matrix::new(4, 4, &expected_data);
   assert_eq!(Matrix::approx_equals(&t, &expected), true);
 }
