@@ -1,5 +1,6 @@
 use crate::ray::Ray;
-use crate::sphere::Sphere;
+use crate::shape::sphere::Sphere;
+use crate::shape::Shape;
 use crate::transform::Transform;
 use crate::vectors::{dot, point, vector, Tuple};
 

@@ -3,9 +3,9 @@ use crate::intersections::{Intersection, Intersections};
 use crate::material::Material;
 use crate::matrix::Matrix;
 use crate::ray::Ray;
+use crate::shape::Shape;
 use crate::transform::Transform;
-use crate::vectors::Tuple;
-use crate::vectors::{dot, point, vector};
+use crate::vectors::{dot, point, vector, Tuple};
 use rand::Rng;
 use std::f64;
 
@@ -16,13 +16,6 @@ pub struct Sphere {
   pub handle: u32,
   pub transform: Matrix,
   pub material: Material,
-}
-
-#[derive(Copy, Clone)]
-pub struct Intersects {
-  pub x1: f64,
-  pub x2: f64,
-  pub count: usize,
 }
 
 impl Sphere {
@@ -36,8 +29,10 @@ impl Sphere {
       material: Material::new(),
     };
   }
+}
 
-  pub fn intersects(&self, ray: Ray) -> Intersections {
+impl Shape for Sphere {
+  fn intersects(&self, ray: Ray) -> Intersections {
     let i = Matrix::inverse(&self.transform);
     let ray2 = ray.transform(&i);
     let sphere_to_ray = ray2.origin.sub(point(0., 0., 0.));
@@ -71,11 +66,11 @@ impl Sphere {
     };
   }
 
-  pub fn set_transform(&mut self, transform: Matrix) {
+  fn set_transform(&mut self, transform: Matrix) {
     self.transform = transform;
   }
 
-  pub fn normal_at(&self, p: Tuple) -> Tuple {
+  fn normal_at(&self, p: Tuple) -> Tuple {
     let inverse_transform = Matrix::inverse(&self.transform);
     let object_point = Matrix::mult_4x4_by_1d(&inverse_transform, &p);
     let origin = point(0., 0., 0.);

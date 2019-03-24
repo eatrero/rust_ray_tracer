@@ -2,7 +2,8 @@ use crate::colors::Color;
 use crate::intersections::{prepare_computations, Computations, Intersection, Intersections};
 use crate::light::{lighting, PointLight};
 use crate::ray::Ray;
-use crate::sphere::Sphere;
+use crate::shape::sphere::Sphere;
+use crate::shape::Shape;
 use crate::transform::Transform;
 use crate::vectors::{point, vector, Tuple};
 

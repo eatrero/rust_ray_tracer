@@ -2,7 +2,7 @@ mod vectors;
 use vectors::{point, vector};
 
 mod world;
-use world::{tick, Env, Proj, World};
+use world::World;
 
 mod colors;
 use colors::Color;
@@ -11,7 +11,6 @@ mod canvas;
 use canvas::Canvas;
 
 mod matrix;
-use matrix::Matrix;
 
 mod transform;
 use transform::Transform;
@@ -19,8 +18,8 @@ use transform::Transform;
 mod intersections;
 mod ray;
 use ray::Ray;
-mod sphere;
-use sphere::Sphere;
+mod shape;
+use shape::sphere::Sphere;
 use std::f64;
 mod light;
 use light::{lighting, PointLight};
@@ -63,6 +62,7 @@ fn sphere_projection() {
             let position = point(world_x, world_y, wall_z);
             let r = Ray::new(ray_origin, position.sub(ray_origin).norm());
 
+            /*
             let xs = shape.intersects(r);
             let hit = xs.hit();
             if hit.intersections.len() > 0 {
@@ -75,6 +75,7 @@ fn sphere_projection() {
                 let color = lighting(m, l, p, eye, normv, is_in_shadow);
                 c.set(x, y, color);
             }
+            */
         }
     }
 
@@ -82,8 +83,8 @@ fn sphere_projection() {
 }
 
 fn world() {
-    let width = 2400;
-    let height = 1200;
+    let width = 100;
+    let height = 50;
     let fov = f64::consts::PI / 3.0;
     let mut camera = Camera::new(width, height, fov);
     let mut world = World::new();
