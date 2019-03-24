@@ -45,7 +45,6 @@ impl Canvas {
 
     let canvas_output = Canvas::canvas_to_ppm(self);
 
-    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(canvas_output.as_bytes()) {
       Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
       Ok(_) => println!("successfully wrote to {}", display),
@@ -62,7 +61,7 @@ impl Canvas {
     let mut output: String = format!("P3\n{} {}\n255\n", width, height).to_owned();
 
     fn c2u8(c: f64) -> u32 {
-      let mut out = (c * 255.0) as u32;
+      let mut out = (c * 256.0) as u32;
       out = if out > 255 { 255 } else { out };
       return out;
     }
@@ -72,7 +71,7 @@ impl Canvas {
     for i in 0..width * height {
       let red = c2u8(canvas[i].r).to_string() + " ";
       let green = c2u8(canvas[i].g).to_string() + " ";
-      let blue = c2u8(canvas[i].g).to_string() + " ";
+      let blue = c2u8(canvas[i].b).to_string() + " ";
 
       output.push_str(&red[..]);
       output.push_str(&green[..]);
@@ -117,9 +116,6 @@ fn it_writes_to_ppm() {
   let mut c = Canvas::new(10, 10);
   let red = Color::new(1., 1.0, 1.0);
   c.set(1, 1, red);
-  //let output = c.canvas_to_ppm();
-  //println!("{}", output)
 
   c.write();
-  //  assert_eq!(Color::equals(pixel, red), true);
 }

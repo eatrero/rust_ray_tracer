@@ -3,7 +3,7 @@ use crate::intersections::{prepare_computations, Computations, Intersection, Int
 use crate::light::{lighting, PointLight};
 use crate::ray::Ray;
 use crate::shape::sphere::Sphere;
-use crate::shape::Shape;
+use crate::shape::{Shape, ShapeType};
 use crate::transform::Transform;
 use crate::vectors::{point, vector, Tuple};
 
@@ -40,7 +40,7 @@ pub fn tick(env: Env, proj: Proj) -> Proj {
 
 pub struct World {
   light: Option<PointLight>,
-  objects: Vec<Sphere>,
+  objects: Vec<Shape>,
 }
 
 impl World {
@@ -55,17 +55,17 @@ impl World {
     self.light = Some(point_light);
   }
 
-  pub fn add_object(&mut self, object: Sphere) {
+  pub fn add_object(&mut self, object: Shape) {
     self.objects.push(object);
   }
 
   pub fn default_world() -> World {
-    let mut s1 = Sphere::new(point(0., 0., 0.), 1.);
+    let mut s1 = Shape::new(ShapeType::Sphere);
     s1.material.color = Color::new(0.8, 1.0, 0.6);
     s1.material.diffuse = 0.7;
     s1.material.specular = 0.2;
 
-    let mut s2 = Sphere::new(point(0., 0., 0.), 1.);
+    let mut s2 = Shape::new(ShapeType::Sphere);
     let transform2 = Transform::new().scale(0.5, 0.5, 0.5).transform;
     s2.set_transform(transform2);
 
@@ -79,13 +79,13 @@ impl World {
   }
 
   pub fn default_world2() -> World {
-    let mut s1 = Sphere::new(point(0., 0., 0.), 1.);
+    let mut s1 = Shape::new(ShapeType::Sphere);
     s1.material.color = Color::new(0.8, 1.0, 0.6);
     s1.material.diffuse = 0.7;
     s1.material.specular = 0.2;
     s1.material.ambient = 1.0;
 
-    let mut s2 = Sphere::new(point(0., 0., 0.), 1.);
+    let mut s2 = Shape::new(ShapeType::Sphere);
     let transform2 = Transform::new().scale(0.5, 0.5, 0.5).transform;
     s2.set_transform(transform2);
     s2.material.ambient = 1.0;

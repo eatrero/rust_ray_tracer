@@ -1,17 +1,18 @@
 use crate::ray::Ray;
+use crate::shape::plane::Plane;
 use crate::shape::sphere::Sphere;
-use crate::shape::Shape;
+use crate::shape::{Shape, ShapeType};
 use crate::transform::Transform;
 use crate::vectors::{dot, point, vector, Tuple};
 
 #[derive(Clone)]
 pub struct Intersection {
   pub t: f64,
-  pub object: Sphere,
+  pub object: Shape,
 }
 
 impl Intersection {
-  pub fn new(t: f64, object: Sphere) -> Intersection {
+  pub fn new(t: f64, object: Shape) -> Intersection {
     Intersection {
       t: t,
       object: object,
@@ -26,7 +27,7 @@ pub struct Intersections {
 
 pub struct Computations {
   pub t: f64,
-  pub object: Sphere,
+  pub object: Shape,
   pub point: Tuple,
   pub eyev: Tuple,
   pub normalv: Tuple,
@@ -92,7 +93,7 @@ impl Intersections {
 
 #[test]
 fn intersection_encapsulates_a_t_and_object() {
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let handle = s.handle;
   let i = Intersection::new(3.5, s);
 
@@ -102,7 +103,7 @@ fn intersection_encapsulates_a_t_and_object() {
 
 #[test]
 fn intersections_aggregate() {
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let s2 = s.clone();
   let i1 = Intersection::new(1., s);
   let i2 = Intersection::new(2., s2);
@@ -117,7 +118,7 @@ fn intersections_aggregate() {
 #[test]
 fn intersections_aggregate_2() {
   let r = Ray::new(point(0., 0., 5.), vector(0., 0., 1.));
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
 
   let xs = s.intersects(r);
 
@@ -128,7 +129,7 @@ fn intersections_aggregate_2() {
 
 #[test]
 fn intersections_hit_when_all_intersections_are_postive() {
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let s2 = s.clone();
 
   let i1 = Intersection::new(1., s);
@@ -145,7 +146,7 @@ fn intersections_hit_when_all_intersections_are_postive() {
 
 #[test]
 fn intersections_hit_when_intersections_are_inside() {
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let s2 = s.clone();
 
   let i1 = Intersection::new(-1., s);
@@ -163,7 +164,7 @@ fn intersections_hit_when_intersections_are_inside() {
 
 #[test]
 fn intersections_hit_when_intersections_are_negative() {
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let s2 = s.clone();
 
   let i1 = Intersection::new(-2., s);
@@ -178,7 +179,7 @@ fn intersections_hit_when_intersections_are_negative() {
 
 #[test]
 fn intersections_hit_is_lowest_non_negative() {
-  let s = Sphere::new(point(0.0, 0.0, 0.0), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let s2 = s.clone();
   let s3 = s.clone();
   let s4 = s.clone();
@@ -202,7 +203,7 @@ fn intersections_hit_is_lowest_non_negative() {
 
 fn precompute_the_state_of_an_intersection() {
   let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
-  let s = Sphere::new(point(0., 0., 0.), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let i = Intersection::new(4., s);
   let t = i.t;
 
@@ -217,7 +218,7 @@ fn precompute_the_state_of_an_intersection() {
 #[test]
 fn the_hit_when_an_intersection_occurs_on_outside() {
   let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
-  let s = Sphere::new(point(0., 0., 0.), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let i = Intersection::new(4., s);
 
   let comps = prepare_computations(i, r);
@@ -228,7 +229,7 @@ fn the_hit_when_an_intersection_occurs_on_outside() {
 #[test]
 fn the_hit_when_an_intersection_occurs_on_inside() {
   let r = Ray::new(point(0., 0., 0.), vector(0., 0., 1.));
-  let s = Sphere::new(point(0., 0., 0.), 1.);
+  let s = Shape::new(ShapeType::Sphere);
   let i = Intersection::new(1., s);
 
   let comps = prepare_computations(i, r);
@@ -242,7 +243,7 @@ fn the_hit_when_an_intersection_occurs_on_inside() {
 #[test]
 fn the_hit_should_offset_the_point() {
   let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
-  let mut s = Sphere::new(point(0., 0., 0.), 1.);
+  let mut s = Shape::new(ShapeType::Sphere);
   s.transform = Transform::new().translate(0., 0., 1.).transform;
   let i = Intersection::new(5., s);
 
