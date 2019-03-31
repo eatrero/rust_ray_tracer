@@ -1,5 +1,6 @@
 use crate::colors::Color;
 use crate::material::Material;
+use crate::shape::{Shape, ShapeType};
 use crate::vectors::{dot, point, reflect, vector, Tuple};
 
 #[derive(Copy, Clone)]
@@ -19,6 +20,7 @@ impl PointLight {
 
 pub fn lighting(
   m: Material,
+  o: Shape,
   l: PointLight,
   position: Tuple,
   eyev: Tuple,
@@ -28,7 +30,12 @@ pub fn lighting(
   let mut diffuse;
   let mut specular;
 
-  let effective_color = Color::dot(m.color, l.intensity);
+  let color = match m.pattern {
+    Some(_) => m.pattern.unwrap().pattern_at_object(o, position),
+    None => m.color,
+  };
+
+  let effective_color = Color::dot(color, l.intensity);
   let lightv = l.position.sub(position).norm();
   let ambient = Color::mult(effective_color, m.ambient);
   let light_dot_normal = dot(lightv, normalv);
@@ -75,8 +82,9 @@ fn lighting_with_eye_between_light_and_surface() {
   let l = PointLight::new(point(0., 0., -10.), intensity);
   let eyev = vector(0., 0., -1.);
   let normalv = vector(0., 0., -1.);
+  let o = Shape::new(ShapeType::Sphere);
 
-  let light = lighting(m, l, position, eyev, normalv, false);
+  let light = lighting(m, o, l, position, eyev, normalv, false);
 
   assert_eq!(Color::equals(light, Color::new(1.9, 1.9, 1.9)), true);
 }
@@ -89,8 +97,9 @@ fn lighting_with_eye_between_light_and_surface_eye_at_45() {
   let l = PointLight::new(point(0., 0., -10.), intensity);
   let eyev = vector(0., 2.0f64.sqrt() / 2., -2.0f64.sqrt() / 2.);
   let normalv = vector(0., 0., -1.);
+  let o = Shape::new(ShapeType::Sphere);
 
-  let light = lighting(m, l, position, eyev, normalv, false);
+  let light = lighting(m, o, l, position, eyev, normalv, false);
 
   assert_eq!(Color::equals(light, Color::new(1.0, 1.0, 1.0)), true);
 }
@@ -103,8 +112,9 @@ fn lighting_with_eye_between_light_and_surface_light_at_45() {
   let l = PointLight::new(point(0., 10., -10.), intensity);
   let eyev = vector(0., 0., -1.);
   let normalv = vector(0., 0., -1.);
+  let o = Shape::new(ShapeType::Sphere);
 
-  let light = lighting(m, l, position, eyev, normalv, false);
+  let light = lighting(m, o, l, position, eyev, normalv, false);
 
   assert_eq!(
     Color::approx_equals(light, Color::new(0.7364, 0.7364, 0.7364)),
@@ -120,8 +130,9 @@ fn lighting_with_eye_in_path_of_reflection() {
   let l = PointLight::new(point(0., 10., -10.), intensity);
   let eyev = vector(0., -2.0f64.sqrt() / 2., -2.0f64.sqrt() / 2.);
   let normalv = vector(0., 0., -1.);
+  let o = Shape::new(ShapeType::Sphere);
 
-  let light = lighting(m, l, position, eyev, normalv, false);
+  let light = lighting(m, o, l, position, eyev, normalv, false);
 
   assert_eq!(
     Color::approx_equals(light, Color::new(1.6364, 1.6364, 1.6364)),
@@ -137,8 +148,9 @@ fn lighting_with_light_behind_surface() {
   let l = PointLight::new(point(0., 0., 10.), intensity);
   let eyev = vector(0., 0., -1.);
   let normalv = vector(0., 0., -1.);
+  let o = Shape::new(ShapeType::Sphere);
 
-  let light = lighting(m, l, position, eyev, normalv, false);
+  let light = lighting(m, o, l, position, eyev, normalv, false);
 
   assert_eq!(Color::equals(light, Color::new(0.1, 0.1, 0.1)), true);
 }
@@ -152,8 +164,9 @@ fn lighting_with_with_the_surface_in_shadow() {
   let intensity = Color::new(1., 1., 1.);
   let l = PointLight::new(point(0., 0., -10.), intensity);
   let is_in_shadow = true;
+  let o = Shape::new(ShapeType::Sphere);
 
-  let light = lighting(m, l, position, eyev, normalv, is_in_shadow);
+  let light = lighting(m, o, l, position, eyev, normalv, is_in_shadow);
 
   assert_eq!(Color::equals(light, Color::new(0.1, 0.1, 0.1)), true);
 }

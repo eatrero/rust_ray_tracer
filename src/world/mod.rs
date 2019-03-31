@@ -119,7 +119,8 @@ impl World {
     let is_in_shadow = self.is_shadowed(comps.over_point);
 
     return lighting(
-      comps.object.material,
+      comps.object.material.clone(),
+      comps.object,
       self.light.unwrap(),
       comps.point,
       comps.eyev,
