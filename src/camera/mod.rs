@@ -6,6 +6,7 @@ use crate::transform::Transform;
 use crate::vectors::{point, vector, Tuple};
 use crate::world::World;
 use std::f64;
+use std::thread;
 
 pub struct Camera {
   hsize: usize,
@@ -64,10 +65,10 @@ impl Camera {
   pub fn render(&self, world: World) -> Canvas {
     let mut canvas = Canvas::new(self.hsize, self.vsize);
 
-    for y in 0..self.vsize {
-      for x in 0..self.hsize {
+    for y in 0..(self.vsize / 1) {
+      for x in 0..(self.hsize / 1) {
         let r = self.ray_for_pixel(x, y);
-        let c = world.color_at(r);
+        let c = world.color_at(r, 5); // maximum recursion depth for camera is 5
         canvas.set(x, y, c);
       }
     }

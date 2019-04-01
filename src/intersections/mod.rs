@@ -3,7 +3,7 @@ use crate::shape::plane::Plane;
 use crate::shape::sphere::Sphere;
 use crate::shape::{Shape, ShapeType};
 use crate::transform::Transform;
-use crate::vectors::{dot, point, vector, Tuple};
+use crate::vectors::{dot, point, reflect, vector, Tuple};
 
 #[derive(Clone)]
 pub struct Intersection {
@@ -31,6 +31,7 @@ pub struct Computations {
   pub point: Tuple,
   pub eyev: Tuple,
   pub normalv: Tuple,
+  pub reflectv: Tuple,
   pub inside: bool,
   pub over_point: Tuple,
 }
@@ -47,6 +48,7 @@ pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
     inside = false;
   }
   let over_point = point.add(normalv.mult(1.0e-10));
+  let reflectv = reflect(r.direction, normalv);
 
   return Computations {
     t: i.t,
@@ -54,6 +56,7 @@ pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
     point: point,
     eyev: eyev,
     normalv: normalv,
+    reflectv: reflectv,
     inside: inside,
     over_point: over_point,
   };
@@ -251,4 +254,19 @@ fn the_hit_should_offset_the_point() {
 
   assert_eq!(comps.over_point.z < -1.0e-10 / 2.0, true);
   assert_eq!(comps.point.z > comps.over_point.z, true);
+}
+
+#[test]
+fn precompute_the_reflection_vector() {
+  let half_root2 = 2.0f64.sqrt() / 2.0;
+  let r = Ray::new(point(0., 1., -1.), vector(0., -half_root2, half_root2));
+  let shape = Shape::new(ShapeType::Plane);
+
+  let i = Intersection::new(half_root2, shape);
+  let comps = prepare_computations(i, r);
+
+  assert_eq!(
+    comps.reflectv.equals(vector(0.0, half_root2, half_root2)),
+    true
+  );
 }

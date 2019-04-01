@@ -38,6 +38,7 @@ pub fn tick(env: Env, proj: Proj) -> Proj {
   return Proj::new(proj.pos.add(proj.vel), proj.vel.add(env.grav).add(env.wind));
 }
 
+#[derive(Clone)]
 pub struct World {
   light: Option<PointLight>,
   objects: Vec<Shape>,
@@ -115,21 +116,24 @@ impl World {
     return Intersections::new(_intersections);
   }
 
-  pub fn shade_hit(&self, comps: Computations) -> Color {
+  pub fn shade_hit(&self, comps: Computations, remaining: u32) -> Color {
     let is_in_shadow = self.is_shadowed(comps.over_point);
 
-    return lighting(
+    let surface = lighting(
       comps.object.material.clone(),
-      comps.object,
+      comps.object.clone(),
       self.light.unwrap(),
       comps.point,
       comps.eyev,
       comps.normalv,
       is_in_shadow,
     );
+
+    let reflected = self.reflected_color(comps, remaining);
+    return Color::add(surface, reflected);
   }
 
-  pub fn color_at(&self, r: Ray) -> Color {
+  pub fn color_at(&self, r: Ray, remaining: u32) -> Color {
     let xs = self.intersect_world(r);
     if xs.intersections.len() > 0 {
       let hit = xs.hit();
@@ -138,12 +142,23 @@ impl World {
           if h.t >= 0. {
             let intersect = h.clone();
             let comps = prepare_computations(intersect, r);
-            return self.shade_hit(comps);
+            return self.shade_hit(comps, remaining);
           }
         }
       }
     }
     return Color::new(0., 0., 0.);
+  }
+
+  pub fn reflected_color(&self, comps: Computations, remaining: u32) -> Color {
+    if remaining == 0 || comps.object.material.reflectiveness == 0.0 {
+      return Color::new(0., 0., 0.);
+    }
+
+    let reflected_ray = Ray::new(comps.over_point, comps.reflectv);
+    let color = self.color_at(reflected_ray, remaining - 1);
+
+    return Color::mult(color, comps.object.material.reflectiveness);
   }
 
   pub fn is_shadowed(&self, point: Tuple) -> bool {
@@ -205,7 +220,7 @@ fn shading_an_intersection() {
   let shape = xs[0].object.clone();
   let i = Intersection::new(4., shape);
   let comps = prepare_computations(i, r);
-  let c = world.shade_hit(comps);
+  let c = world.shade_hit(comps, 1);
 
   assert_eq!(
     Color::approx_equals(c, Color::new(0.38066, 0.47583, 0.2855)),
@@ -221,7 +236,7 @@ fn shading_an_intersection_from_inside() {
   let shape = world.objects.clone()[1].clone();
   let i = Intersection::new(0.5, shape);
   let comps = prepare_computations(i, r);
-  let c = world.shade_hit(comps);
+  let c = world.shade_hit(comps, 1);
 
   assert_eq!(
     Color::approx_equals(c, Color::new(0.90498, 0.90498, 0.90498)),
@@ -233,7 +248,7 @@ fn shading_an_intersection_from_inside() {
 fn the_color_when_a_ray_misses() {
   let world = World::default_world();
   let r = Ray::new(point(0., 0., -5.), vector(0., 1., 0.));
-  let c = world.color_at(r);
+  let c = world.color_at(r, 1);
 
   assert_eq!(Color::approx_equals(c, Color::new(0., 0., 0.)), true);
 }
@@ -242,7 +257,7 @@ fn the_color_when_a_ray_misses() {
 fn the_color_when_a_ray_hits() {
   let world = World::default_world();
   let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
-  let c = world.color_at(r);
+  let c = world.color_at(r, 1);
 
   assert_eq!(
     Color::approx_equals(c, Color::new(0.38066, 0.47583, 0.2855)),
@@ -255,7 +270,7 @@ fn the_color_with_an_intersection_from_behind() {
   let mut world = World::default_world2();
 
   let r = Ray::new(point(0., 0., 0.75), vector(0., 0., -1.));
-  let c = world.color_at(r);
+  let c = world.color_at(r, 1);
 
   assert_eq!(Color::approx_equals(c, Color::new(1.0, 1.0, 1.0)), true);
 }
@@ -294,4 +309,106 @@ fn there_is_no_shadow_when_an_object_is_behind_the_point() {
   let is_in_shadow = world.is_shadowed(point);
 
   assert_eq!(is_in_shadow, false);
+}
+
+#[test]
+fn the_reflected_color_of_a_non_reflective_material() {
+  let mut world = World::default_world();
+  let r = Ray::new(point(0., 0., 0.), vector(0., 0., 1.));
+  let mut shape = world.objects[1].clone();
+  shape.material.ambient = 1.0;
+  let i = Intersection::new(1., shape);
+
+  let comps = prepare_computations(i, r);
+  let color = world.reflected_color(comps, 1);
+
+  //println!("{:#?}", color);
+  assert_eq!(Color::equals(color, Color::new(0., 0., 0.)), true);
+}
+
+#[test]
+fn the_reflected_color_of_a_reflective_material() {
+  let half_root2 = 2.0f64.sqrt() / 2.0;
+  let mut world = World::default_world();
+  let mut plane = Shape::new(ShapeType::Plane);
+  plane.material.reflectiveness = 0.5;
+  let tx = Transform::new().translate(0., -1.0, 0.).transform;
+  plane.set_transform(tx);
+  world.add_object(plane.clone());
+
+  // 45 degree angle ray
+  let r = Ray::new(point(0., 0., -3.), vector(0., -half_root2, half_root2));
+  let i = Intersection::new(2.0f64.sqrt(), plane);
+  let comps = prepare_computations(i, r);
+  let color = world.reflected_color(comps, 1);
+
+  //println!("{:#?}", color);
+  assert_eq!(
+    Color::approx_equals(color, Color::new(0.19032, 0.2379, 0.14274)),
+    true
+  );
+}
+#[test]
+fn shade_hit_of_a_reflective_material() {
+  let half_root2 = 2.0f64.sqrt() / 2.0;
+  let mut world = World::default_world();
+  let mut plane = Shape::new(ShapeType::Plane);
+  plane.material.reflectiveness = 0.5;
+  let tx = Transform::new().translate(0., -1.0, 0.).transform;
+  plane.set_transform(tx);
+  world.add_object(plane.clone());
+
+  // 45 degree angle ray
+  let r = Ray::new(point(0., 0., -3.), vector(0., -half_root2, half_root2));
+  let i = Intersection::new(2.0f64.sqrt(), plane);
+  let comps = prepare_computations(i, r);
+  let color = world.shade_hit(comps, 1);
+
+  println!("{:#?}", color);
+  assert_eq!(
+    Color::approx_equals(color, Color::new(0.87677, 0.92436, 0.82918)),
+    true
+  );
+}
+
+#[test]
+fn color_at_with_mutually_reflective_surfaces() {
+  let mut world = World::new();
+  world.set_light(PointLight::new(point(0., 0., 0.), Color::new(1., 1., 1.)));
+
+  let mut lower_plane = Shape::new(ShapeType::Plane);
+  lower_plane.material.reflectiveness = 1.0;
+  let lower_tx = Transform::new().translate(0., -1., 0.).transform;
+  lower_plane.set_transform(lower_tx);
+  world.add_object(lower_plane);
+
+  let mut upper_plane = Shape::new(ShapeType::Plane);
+  upper_plane.material.reflectiveness = 1.0;
+  let upper_tx = Transform::new().translate(0., 1., 0.).transform;
+  upper_plane.set_transform(upper_tx);
+  world.add_object(upper_plane);
+
+  let r = Ray::new(point(0., 0., 0.), vector(0., 1., 0.));
+  let color = world.color_at(r, 4);
+
+  println!("{:#?}", color);
+}
+#[test]
+fn the_reflected_color_at_maximum_recursion_depth() {
+  let half_root2 = 2.0f64.sqrt() / 2.0;
+  let mut world = World::default_world();
+  let mut plane = Shape::new(ShapeType::Plane);
+  plane.material.reflectiveness = 0.5;
+  let tx = Transform::new().translate(0., -1.0, 0.).transform;
+  plane.set_transform(tx);
+  world.add_object(plane.clone());
+
+  // 45 degree angle ray
+  let r = Ray::new(point(0., 0., -3.), vector(0., -half_root2, half_root2));
+  let i = Intersection::new(2.0f64.sqrt(), plane);
+  let comps = prepare_computations(i, r);
+  let color = world.reflected_color(comps, 0);
+
+  println!("{:#?}", color);
+  assert_eq!(Color::approx_equals(color, Color::new(0., 0., 0.)), true);
 }

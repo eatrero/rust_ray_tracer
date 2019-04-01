@@ -20,7 +20,21 @@ impl Checker {
   }
 
   pub fn pattern_at(pattern: &Pattern, point: Tuple) -> Color {
-    if (point.x.floor() + point.y.floor() + point.z.floor()) % 2.0 == 0.0 {
+    /*
+    println!(
+      "{} {} {} {} {}",
+      point.x.round(),
+      point.y.round(),
+      point.z.round(),
+      point.x.round().floor() + point.y.round().floor() + point.z.round().floor(),
+      (point.x.floor() + point.y.floor() + point.z.floor()) % 2.0f64
+    );
+    */
+
+    if ((point.x.round().floor() + point.y.round().floor() + point.z.round().floor()) % 2.0f64)
+      .abs()
+      < 1e-9
+    {
       return pattern.a.clone();
     } else {
       return pattern.b.clone();
