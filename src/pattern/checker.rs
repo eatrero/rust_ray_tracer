@@ -20,17 +20,6 @@ impl Checker {
   }
 
   pub fn pattern_at(pattern: &Pattern, point: Tuple) -> Color {
-    /*
-    println!(
-      "{} {} {} {} {}",
-      point.x.round(),
-      point.y.round(),
-      point.z.round(),
-      point.x.round().floor() + point.y.round().floor() + point.z.round().floor(),
-      (point.x.floor() + point.y.floor() + point.z.floor()) % 2.0f64
-    );
-    */
-
     if ((point.x.round().floor() + point.y.round().floor() + point.z.round().floor()) % 2.0f64)
       .abs()
       < 1e-9
@@ -54,7 +43,7 @@ fn checker_should_repeat_in_x() {
     true
   );
   assert_eq!(
-    Color::equals(pattern.pattern_at(point(0.99, 0., 0.,)), white.clone()),
+    Color::equals(pattern.pattern_at(point(0.99, 0., 0.,)), black.clone()),
     true
   );
   assert_eq!(
@@ -74,7 +63,7 @@ fn checker_should_repeat_in_y() {
     true
   );
   assert_eq!(
-    Color::equals(pattern.pattern_at(point(0., 0.99, 0.,)), white.clone()),
+    Color::equals(pattern.pattern_at(point(0., 0.99, 0.,)), black.clone()),
     true
   );
   assert_eq!(
@@ -94,7 +83,7 @@ fn checker_should_repeat_in_z() {
     true
   );
   assert_eq!(
-    Color::equals(pattern.pattern_at(point(0., 0., 0.99,)), white.clone()),
+    Color::equals(pattern.pattern_at(point(0., 0., 0.99,)), black.clone()),
     true
   );
   assert_eq!(

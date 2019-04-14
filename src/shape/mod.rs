@@ -1,5 +1,5 @@
 use crate::colors::Color;
-use crate::intersections::Intersections;
+use crate::intersections::{prepare_computations, Intersection, Intersections};
 use crate::material::Material;
 use crate::matrix::Matrix;
 use crate::ray::Ray;
@@ -39,6 +39,14 @@ impl Shape {
     };
   }
 
+  pub fn glass_sphere() -> Shape {
+    let mut sphere = Shape::new(ShapeType::Sphere);
+    sphere.material.transparency = 1.0;
+    sphere.material.refractive_index = 1.5;
+
+    return sphere;
+  }
+
   pub fn intersects(&self, ray: Ray) -> Intersections {
     let i = Matrix::inverse(&self.transform);
     let local_ray = ray.transform(&i);
@@ -74,6 +82,12 @@ impl Shape {
   }
 }
 
+impl PartialEq for Shape {
+  fn eq(&self, other: &Shape) -> bool {
+    self.handle == other.handle
+  }
+}
+
 #[test]
 fn the_default_transformation() {
   let s = Shape::new(ShapeType::Test);
@@ -99,4 +113,65 @@ fn assigns_a_material() {
   s.material.ambient = 1.0;
 
   assert_eq!(s.material.ambient, 1.0);
+}
+
+#[test]
+fn creates_a_glass_sphere() {
+  let s = Shape::glass_sphere();
+
+  assert_eq!(Matrix::equals(&s.transform, &Matrix::identity(4)), true);
+  assert_eq!(s.material.transparency, 1.0);
+  assert_eq!(s.material.refractive_index, 1.5);
+}
+
+#[test]
+fn finding_n1_and_n2_and_various_intersections() {
+  let mut a = Shape::glass_sphere();
+  let a_transform = Transform::new().scale(2., 2., 2.).transform;
+  a.set_transform(a_transform);
+  a.material.refractive_index = 1.5;
+
+  let mut b = Shape::glass_sphere();
+  let b_transform = Transform::new().translate(0., 0., -0.25).transform;
+  b.set_transform(b_transform);
+  b.material.refractive_index = 2.0;
+
+  let mut c = Shape::glass_sphere();
+  let c_transform = Transform::new().translate(0., 0., 0.25).transform;
+  c.set_transform(c_transform);
+  c.material.refractive_index = 2.5;
+
+  let r = Ray::new(point(0., 0., -4.), vector(0., 0., 1.));
+  let xs = Intersections::new(vec![
+    Intersection::new(2., a.clone()),
+    Intersection::new(2.75, b.clone()),
+    Intersection::new(3.25, c.clone()),
+    Intersection::new(4.75, b.clone()),
+    Intersection::new(5.25, c.clone()),
+    Intersection::new(6., a.clone()),
+  ]);
+
+  let comp1 = prepare_computations(xs.intersections[0].clone(), r, xs.clone());
+  assert_eq!(comp1.n1, 1.0);
+  assert_eq!(comp1.n2, 1.5);
+
+  let comp2 = prepare_computations(xs.intersections[1].clone(), r, xs.clone());
+  assert_eq!(comp2.n1, 1.5);
+  assert_eq!(comp2.n2, 2.0);
+
+  let comp3 = prepare_computations(xs.intersections[2].clone(), r, xs.clone());
+  assert_eq!(comp3.n1, 2.0);
+  assert_eq!(comp3.n2, 2.5);
+
+  let comp4 = prepare_computations(xs.intersections[3].clone(), r, xs.clone());
+  assert_eq!(comp4.n1, 2.5);
+  assert_eq!(comp4.n2, 2.5);
+
+  let comp5 = prepare_computations(xs.intersections[4].clone(), r, xs.clone());
+  assert_eq!(comp5.n1, 2.5);
+  assert_eq!(comp5.n2, 1.5);
+
+  let comp6 = prepare_computations(xs.intersections[5].clone(), r, xs.clone());
+  assert_eq!(comp6.n1, 1.5);
+  assert_eq!(comp6.n2, 1.0);
 }

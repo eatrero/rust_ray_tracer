@@ -32,8 +32,8 @@ mod pattern;
 use pattern::{Pattern, PatternType};
 
 fn world() {
-    let width = 4096;
-    let height = 2048;
+    let width = 800;
+    let height = 400;
     let fov = f64::consts::PI / 3.0;
     let mut camera = Camera::new(width, height, fov);
     let mut world = World::new();
@@ -52,7 +52,7 @@ fn world() {
     //floor.transform = Transform::new().rotate_x(f64::consts::PI / 2.0).transform;
 
     floor.material.specular = 0.0;
-    floor.material.reflectiveness = 0.6667;
+    floor.material.reflectiveness = 0.25;
     let mut floor_pattern = Pattern::new(
         PatternType::Checker,
         Color::new(1.0, 1., 1.),
@@ -74,7 +74,7 @@ fn world() {
         Color::new(0.7, 0.7, 0.7),
         Color::new(0., 0.0, 0.),
     );
-    left_wall.material.reflectiveness = 0.6667;
+    left_wall.material.reflectiveness = 0.1;
     left_wall.material.set_pattern(pattern);
     world.add_object(left_wall);
 
@@ -91,7 +91,7 @@ fn world() {
         Color::new(0.7, 0.7, 0.7),
         Color::new(0., 0.0, 0.),
     );
-    right_wall.material.reflectiveness = 0.6667;
+    right_wall.material.reflectiveness = 0.1;
     right_wall.material.set_pattern(pattern);
 
     world.add_object(right_wall);
@@ -107,7 +107,7 @@ fn world() {
     middle.material.ambient = 0.0;
     middle.material.diffuse = 0.0;
     middle.material.reflectiveness = 1.0;
-    world.add_object(middle);
+    //world.add_object(middle);
 
     // setup right sphere
     let mut right = Shape::new(ShapeType::Sphere);
@@ -118,7 +118,7 @@ fn world() {
     right.material = Material::new();
     right.material.color = Color::new(0.0, 1.0, 0.0);
     right.material.reflectiveness = 0.5;
-    world.add_object(right);
+    //world.add_object(right);
 
     // setup left sphere
     let mut left = Shape::new(ShapeType::Sphere);
@@ -129,17 +129,21 @@ fn world() {
     left.material = Material::new();
     left.material.color = Color::new(1.0, 0.0, 0.0);
     left.material.reflectiveness = 0.5;
-    world.add_object(left);
+    //world.add_object(left);
 
     // setup back sphere
     let mut back = Shape::new(ShapeType::Sphere);
     back.transform = Transform::new()
-        .scale(1.0, 1.0, 1.0)
-        .translate(3.5, 1.0, -4.)
+        .scale(1.3, 1.3, 1.3)
+        .translate(0.5, 1.0, -7.)
         .transform;
     back.material = Material::new();
-    back.material.color = Color::new(0.0, 0.0, 1.0);
-    back.material.reflectiveness = 0.5;
+    back.material.color = Color::new(0.1, 0.1, 0.1);
+    back.material.transparency = 1.0;
+    back.material.refractive_index = 1.5;
+    back.material.reflectiveness = 0.0;
+    back.material.ambient = 0.0;
+
     world.add_object(back);
 
     camera.transform =

@@ -42,7 +42,13 @@ impl Pattern {
       PatternType::Gradient => gradient::Gradient::pattern_at(self, point),
       PatternType::Stripe => stripe::Stripe::pattern_at(self, point),
       PatternType::Ring => ring::Ring::pattern_at(self, point),
-      PatternType::Test => Color::new(point.x, point.y, point.z),
+      PatternType::Test => {
+        println!(
+          "************* test pattern {} {} {}",
+          point.x, point.y, point.z
+        );
+        return Color::new(point.x, point.y, point.z);
+      }
     };
   }
 

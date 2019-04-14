@@ -25,6 +25,7 @@ pub struct Intersections {
   pub intersections: Vec<Intersection>,
 }
 
+#[derive(Clone)]
 pub struct Computations {
   pub t: f64,
   pub object: Shape,
@@ -34,9 +35,12 @@ pub struct Computations {
   pub reflectv: Tuple,
   pub inside: bool,
   pub over_point: Tuple,
+  pub under_point: Tuple,
+  pub n1: f64,
+  pub n2: f64,
 }
 
-pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
+pub fn prepare_computations(i: Intersection, r: Ray, xs: Intersections) -> Computations {
   let t = i.t;
   let point = r.position(t);
   let mut normalv = i.object.normal_at(point);
@@ -48,7 +52,50 @@ pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
     inside = false;
   }
   let over_point = point.add(normalv.mult(1.0e-10));
+  let under_point = point.sub(normalv.mult(1.0e-10));
+
   let reflectv = reflect(r.direction, normalv);
+
+  let mut containers: Vec<Shape> = vec![];
+
+  let mut n1 = 1.0;
+  let mut n2 = 1.0;
+
+  let hit = xs.hit();
+
+  for intersect in xs.intersections {
+    if intersect.t == i.t {
+      if containers.len() == 0 {
+        n1 = 1.;
+      } else {
+        n1 = containers[containers.len() - 1].material.refractive_index;
+      }
+    }
+
+    let mut index: usize = 0;
+
+    for idx in 0..containers.len() {
+      if containers[idx].handle == intersect.object.handle {
+        index = idx + 1;
+        break;
+      }
+    }
+
+    if index > 0 {
+      containers.remove(index - 1);
+    } else {
+      containers.push(intersect.object.clone());
+    }
+
+    if intersect.t == i.t {
+      if containers.len() == 0 {
+        n2 = 1.0;
+      } else {
+        n2 = containers[containers.len() - 1].material.refractive_index;
+      }
+      break;
+    }
+  }
 
   return Computations {
     t: i.t,
@@ -59,6 +106,9 @@ pub fn prepare_computations(i: Intersection, r: Ray) -> Computations {
     reflectv: reflectv,
     inside: inside,
     over_point: over_point,
+    under_point: under_point,
+    n1: n1,
+    n2: n2,
   };
 }
 
@@ -209,8 +259,9 @@ fn precompute_the_state_of_an_intersection() {
   let s = Shape::new(ShapeType::Sphere);
   let i = Intersection::new(4., s);
   let t = i.t;
+  let xs = Intersections::new(vec![i.clone()]);
 
-  let comps = prepare_computations(i, r);
+  let comps = prepare_computations(i, r, xs);
 
   assert_eq!(comps.t, t);
   assert_eq!(comps.point.equals(point(0., 0., -1.)), true);
@@ -223,8 +274,9 @@ fn the_hit_when_an_intersection_occurs_on_outside() {
   let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.));
   let s = Shape::new(ShapeType::Sphere);
   let i = Intersection::new(4., s);
+  let xs = Intersections::new(vec![i.clone()]);
 
-  let comps = prepare_computations(i, r);
+  let comps = prepare_computations(i, r, xs);
 
   assert_eq!(comps.inside, false);
 }
@@ -234,8 +286,9 @@ fn the_hit_when_an_intersection_occurs_on_inside() {
   let r = Ray::new(point(0., 0., 0.), vector(0., 0., 1.));
   let s = Shape::new(ShapeType::Sphere);
   let i = Intersection::new(1., s);
+  let xs = Intersections::new(vec![i.clone()]);
 
-  let comps = prepare_computations(i, r);
+  let comps = prepare_computations(i, r, xs);
 
   assert_eq!(comps.inside, true);
   assert_eq!(comps.point.equals(point(0., 0., 1.)), true);
@@ -249,8 +302,9 @@ fn the_hit_should_offset_the_point() {
   let mut s = Shape::new(ShapeType::Sphere);
   s.transform = Transform::new().translate(0., 0., 1.).transform;
   let i = Intersection::new(5., s);
+  let xs = Intersections::new(vec![i.clone()]);
 
-  let comps = prepare_computations(i, r);
+  let comps = prepare_computations(i, r, xs);
 
   assert_eq!(comps.over_point.z < -1.0e-10 / 2.0, true);
   assert_eq!(comps.point.z > comps.over_point.z, true);
@@ -263,10 +317,25 @@ fn precompute_the_reflection_vector() {
   let shape = Shape::new(ShapeType::Plane);
 
   let i = Intersection::new(half_root2, shape);
-  let comps = prepare_computations(i, r);
+  let xs = Intersections::new(vec![i.clone()]);
+  let comps = prepare_computations(i, r, xs);
 
   assert_eq!(
     comps.reflectv.equals(vector(0.0, half_root2, half_root2)),
     true
   );
+}
+
+#[test]
+fn the_under_point_is_offset_below_the_surface() {
+  let r = Ray::new(point(0., 0., -5.), vector(0., 0., 1.0));
+  let mut shape = Shape::glass_sphere();
+  let tx = Transform::new().translate(0., 0., 1.).transform;
+  shape.set_transform(tx);
+
+  let i = Intersection::new(5.0, shape);
+  let xs = Intersections::new(vec![i.clone()]);
+  let comps = prepare_computations(i, r, xs);
+
+  assert_eq!(comps.point.z < comps.under_point.z, true);
 }
