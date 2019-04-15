@@ -107,7 +107,7 @@ fn world() {
     middle.material.ambient = 0.0;
     middle.material.diffuse = 0.0;
     middle.material.reflectiveness = 1.0;
-    //world.add_object(middle);
+    world.add_object(middle);
 
     // setup right sphere
     let mut right = Shape::new(ShapeType::Sphere);
@@ -118,7 +118,7 @@ fn world() {
     right.material = Material::new();
     right.material.color = Color::new(0.0, 1.0, 0.0);
     right.material.reflectiveness = 0.5;
-    //world.add_object(right);
+    world.add_object(right);
 
     // setup left sphere
     let mut left = Shape::new(ShapeType::Sphere);
@@ -129,19 +129,19 @@ fn world() {
     left.material = Material::new();
     left.material.color = Color::new(1.0, 0.0, 0.0);
     left.material.reflectiveness = 0.5;
-    //world.add_object(left);
+    world.add_object(left);
 
     // setup back sphere
     let mut back = Shape::new(ShapeType::Sphere);
     back.transform = Transform::new()
-        .scale(1.3, 1.3, 1.3)
-        .translate(0.5, 1.0, -7.)
+        .translate(2.8, 2.0, -6.2)
+        .scale(2.0, 2.0, 2.0)
         .transform;
     back.material = Material::new();
-    back.material.color = Color::new(0.1, 0.1, 0.1);
+    back.material.color = Color::new(0.0, 0.0, 0.0);
     back.material.transparency = 1.0;
     back.material.refractive_index = 1.5;
-    back.material.reflectiveness = 0.0;
+    back.material.reflectiveness = 0.9;
     back.material.ambient = 0.0;
 
     world.add_object(back);

@@ -1,6 +1,9 @@
 use crate::colors::Color;
-use crate::intersections::{prepare_computations, Computations, Intersection, Intersections};
+use crate::intersections::{
+  prepare_computations, schlick, Computations, Intersection, Intersections,
+};
 use crate::light::{lighting, PointLight};
+use crate::material::Material;
 use crate::matrix::Matrix;
 use crate::pattern::{Pattern, PatternType};
 use crate::ray::Ray;
@@ -132,7 +135,16 @@ impl World {
     );
 
     let reflected = self.reflected_color(comps.clone(), remaining);
-    let refracted = self.refracted_color(comps, remaining);
+    let refracted = self.refracted_color(comps.clone(), remaining);
+
+    if comps.object.material.reflectiveness > 0.0 && comps.object.material.transparency > 0.0 {
+      let reflectance = schlick(comps);
+
+      return Color::add(
+        Color::add(surface, Color::mult(reflected, reflectance)),
+        Color::mult(refracted, 1. - reflectance),
+      );
+    }
 
     return Color::add(Color::add(surface, reflected), refracted);
   }
@@ -565,6 +577,37 @@ fn shade_hit_with_a_transparent_material() {
 
   assert_eq!(
     Color::approx_equals(c, Color::new(0.93642, 0.68642, 0.68642)),
+    true
+  );
+}
+
+#[test]
+fn shade_hit_with_a_reflective_and_transparent_material() {
+  let half_root2 = 2.0f64.sqrt() / 2.0;
+  let mut world = World::default_world();
+  let r = Ray::new(point(0., 0., -3.0), vector(0., -half_root2, half_root2));
+
+  let mut floor = Shape::new(ShapeType::Plane);
+  floor.set_transform(Transform::new().translate(0., -1., 0.).transform);
+  floor.material.reflectiveness = 0.5;
+  floor.material.transparency = 0.5;
+  floor.material.refractive_index = 1.5;
+  world.add_object(floor.clone());
+
+  let mut ball = Shape::new(ShapeType::Sphere);
+  ball.material.color = Color::new(1.0, 0., 0.);
+  ball.material.ambient = 0.5;
+  ball.set_transform(Transform::new().translate(0., -3.5, -0.5).transform);
+  world.add_object(ball);
+
+  let i1 = Intersection::new(2.0f64.sqrt(), floor.clone());
+
+  let xs = Intersections::new(vec![i1.clone()]);
+  let comps = prepare_computations(xs.intersections[0].clone(), r, xs);
+  let c = world.shade_hit(comps, 5);
+
+  assert_eq!(
+    Color::approx_equals(c, Color::new(0.93391, 0.69643, 0.69243)),
     true
   );
 }

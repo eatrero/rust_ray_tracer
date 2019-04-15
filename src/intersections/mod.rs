@@ -144,6 +144,25 @@ impl Intersections {
   }
 }
 
+pub fn schlick(comps: Computations) -> f64 {
+  let mut cos = dot(comps.eyev, comps.normalv);
+
+  // total internal reflection can only occur if n1 > n2
+  if comps.n1 > comps.n2 {
+    let n = comps.n1 / comps.n2;
+    let sin2_t = n * n * (1.0 - cos * cos);
+    if sin2_t > 1.0 {
+      return 1.0;
+    }
+
+    let cos_t = (1.0 - sin2_t).sqrt();
+    cos = cos_t;
+  }
+
+  let r0 = ((comps.n1 - comps.n2) / (comps.n1 + comps.n2)).powi(2);
+  return r0 + (1. - r0) * (1. - cos).powi(5);
+}
+
 #[test]
 fn intersection_encapsulates_a_t_and_object() {
   let s = Shape::new(ShapeType::Sphere);
@@ -338,4 +357,42 @@ fn the_under_point_is_offset_below_the_surface() {
   let comps = prepare_computations(i, r, xs);
 
   assert_eq!(comps.point.z < comps.under_point.z, true);
+}
+
+#[test]
+fn schlick_approximation_under_total_internal_reflection() {
+  let shape = Shape::glass_sphere();
+  let r = Ray::new(point(0., 0., 2.0f64.sqrt() / 2.), vector(0., 1., 0.));
+  let i1 = Intersection::new(-2.0f64.sqrt() / 2., shape.clone());
+  let i2 = Intersection::new(2.0f64.sqrt() / 2., shape.clone());
+  let xs = Intersections::new(vec![i1, i2]);
+  let comps = prepare_computations(xs.intersections[1].clone(), r, xs);
+  let reflectance = schlick(comps);
+
+  assert_eq!(reflectance, 1.0);
+}
+
+#[test]
+fn schlick_approximation_under_a_perpendicular_viewing_angle() {
+  let shape = Shape::glass_sphere();
+  let r = Ray::new(point(0., 0., 0.), vector(0., 1., 0.));
+  let i1 = Intersection::new(-1., shape.clone());
+  let i2 = Intersection::new(1., shape.clone());
+  let xs = Intersections::new(vec![i1, i2]);
+  let comps = prepare_computations(xs.intersections[1].clone(), r, xs);
+  let reflectance = schlick(comps);
+
+  assert_eq!((reflectance - 0.04).abs() < 0.001, true);
+}
+
+#[test]
+fn schlick_approximation_with_small_angle_and_n2_greater_than_n1() {
+  let shape = Shape::glass_sphere();
+  let r = Ray::new(point(0., 0.99, -2.), vector(0., 0., 1.));
+  let i1 = Intersection::new(1.8589, shape.clone());
+  let xs = Intersections::new(vec![i1]);
+  let comps = prepare_computations(xs.intersections[0].clone(), r, xs);
+  let reflectance = schlick(comps);
+
+  assert_eq!(reflectance, 0.4887308101221217);
 }
