@@ -32,8 +32,8 @@ mod pattern;
 use pattern::{Pattern, PatternType};
 
 fn world() {
-    let width = 800;
-    let height = 400;
+    let width = 200;
+    let height = 100;
     let fov = f64::consts::PI / 3.0;
     let mut camera = Camera::new(width, height, fov);
     let mut world = World::new();

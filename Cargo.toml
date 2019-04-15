@@ -4,5 +4,8 @@ version = "0.1.0"
 authors = ["Ed Atrero <eatrero@gmail.com>"]
 edition = "2018"
 
+[dependencies]
+rayon = "1.0"
+
 [dependencies.rand]
 git = "https://github.com/rust-lang/rand"

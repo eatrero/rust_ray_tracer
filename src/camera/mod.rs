@@ -7,6 +7,8 @@ use crate::vectors::{point, vector, Tuple};
 use crate::world::World;
 use std::f64;
 use std::thread;
+extern crate rayon;
+use rayon::prelude::*;
 
 pub struct Camera {
   hsize: usize,
@@ -62,14 +64,32 @@ impl Camera {
     return Ray::new(origin, direction);
   }
 
+  pub fn render_line(&self, world: &World, line: usize) -> Vec<Color> {
+    let mut out: Vec<Color> = Vec::new();
+
+    for x in 0..(self.hsize / 1) {
+      let r = self.ray_for_pixel(x, line);
+      let c = world.color_at(r, 5); // maximum recursion depth for camera is 5
+      out.push(c);
+    }
+
+    return out;
+  }
+
   pub fn render(&self, world: World) -> Canvas {
     let mut canvas = Canvas::new(self.hsize, self.vsize);
 
-    for y in 0..(self.vsize / 1) {
-      for x in 0..(self.hsize / 1) {
-        let r = self.ray_for_pixel(x, y);
-        let c = world.color_at(r, 5); // maximum recursion depth for camera is 5
-        canvas.set(x, y, c);
+    let pixels: Vec<Vec<Color>> = (0..self.vsize)
+      .into_par_iter()
+      .map(|line| {
+        let out = self.render_line(&world, line);
+        return out;
+      })
+      .collect();
+
+    for y in (0..self.vsize) {
+      for x in (0..self.hsize) {
+        canvas.set(x, y, pixels[y][x]);
       }
     }
     return canvas;
